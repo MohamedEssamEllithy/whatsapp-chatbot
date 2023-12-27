@@ -4,12 +4,12 @@ import fs from "fs/promises"; // Import fs.promises instead of node:fs/promises
 import replyModel from "../Database/Schema/replySchema.js";
 
 let fileName;
+let fileNameinstance;
+const uploadingMediaMW =  (req, res, next) => {
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, path.join(path.resolve(
-        "../whatsappbot/media"
-      )));
+    cb(null, path.join(path.resolve("./media")));
   },
   filename: function (req, file, cb) {
     fileName =  file.originalname;
@@ -17,28 +17,29 @@ const storage = multer.diskStorage({
   },
 });
 const uploadMedia = multer({ storage }).single("media");
-
-const uploadingMediaMW =  (req, res, next) => {
-  const newUploadMediaInstance = uploadMedia;
-  newUploadMediaInstance(req, res, async function (err) {
-    try {
-      console.log({ fileName });
-      const fileFounded = await replyModel.findOne({message:fileName})
-      console.log(fileFounded);
-     if (fileFounded){
-       const filePath = path.resolve(`../whatsappbot/media/${fileName}`);
-       console.log(filePath);
-       await fs.unlink(filePath); 
-       console.log("Successfully deleted filePath");
-      }} catch (err) {
-        console.error("Error deleting file:", err);
-      
-    }
-    if (err instanceof multer.MulterError) {
-      return res.status(500).json({ error: err.message });
-    }
-    next();
-  });
+const newUploadMediaInstance = uploadMedia;
+newUploadMediaInstance(req, res, async function (err) {
+  if (fileName){
+  try {
+        fileNameinstance = fileName;
+        const fileFounded = await replyModel.findOne({message:fileName})
+        if (fileFounded){
+          const filePath = path.resolve(`./media/${fileName}`);
+          await fs.unlink(filePath); 
+          console.log("Successfully deleted ");
+        }} catch (err) {
+          console.error("Error deleting file:", err);          
+        }
+        if (err instanceof multer.MulterError) {
+          return res.status(500).json({ error: err.message });
+        }
+        fileName =''
+        next();
+      }else{
+        fileNameinstance=''
+        next()
+      }
+      console.log({fileName});
+    });
 };
-
-export { uploadingMediaMW, fileName };
+export { uploadingMediaMW, fileNameinstance };
